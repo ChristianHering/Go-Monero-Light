@@ -54,7 +54,6 @@ func (c *Client) GetAddressInfo() (*GetAddressInfoResponse, error) {
 	const path = "/get_address_info"
 
 	b := new(bytes.Buffer)
-	retries := 0
 
 	reqObj := &StandardRequest{
 		Address: c.address,
@@ -78,6 +77,8 @@ func (c *Client) GetAddressInfo() (*GetAddressInfoResponse, error) {
 		return &GetAddressInfoResponse{}, err
 	}
 
+	retries := 0
+
 POST_REQUEST:
 
 	resp, err := c.client.Post(url, "application/json", bytes.NewReader(b.Bytes()))
@@ -95,6 +96,8 @@ POST_REQUEST:
 		}
 
 		return &GetAddressInfoResponse{}, ErrorServiceUnavailable
+	} else if resp.StatusCode != http.StatusOK {
+		return &GetAddressInfoResponse{}, ErrorStatusCodeNotOK
 	}
 
 	var response = &GetAddressInfoResponse{}

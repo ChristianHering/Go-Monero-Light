@@ -6,3 +6,5 @@ package gomonerolight
 import "errors"
 
 var ErrorServiceUnavailable = errors.New(`server responded with HTTP error "Service Unavailible" (status code 503) too many times`)
+
+var ErrorStatusCodeNotOK = errors.New("server responded with a non-OK status code")

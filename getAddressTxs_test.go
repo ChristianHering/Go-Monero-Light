@@ -13,32 +13,35 @@ import (
 	"time"
 )
 
-func TestGetAddressInfo(t *testing.T) {
+func TestGetAddressTxs(t *testing.T) {
 	tryCount := 1 //Number of times to send HTTP Service Unavailable
 
-	response := GetAddressInfoResponse{
-		LockedFunds:        "1",
-		TotalReceived:      "2",
-		TotalSent:          "3",
-		ScannedHeight:      4,
-		ScannedBlockHeight: 5,
-		StartHeight:        6,
-		TransactionHeight:  7,
-		BlockchainHeight:   8,
-		SpentOutputs: []Spend{{
-			Amount:      "1",
-			KeyImage:    "",
-			TxPublicKey: "",
-			OutIndex:    2,
-			Mixin:       3,
+	response := GetAddressTxsResponse{
+		TotalReceived:      "31415926535897",
+		ScannedHeight:      3222370,
+		ScannedBlockHeight: 3222370,
+		StartHeight:        3222370,
+		BlockchainHeight:   3222370,
+		Transactions: []Transaction{{
+			ID:            7,
+			Hash:          "a70d679d2052f752732659680f27afe54b83686866c906cb5b4d9c91ce65a942",
+			Timestamp:     time.Time{},
+			TotalReceived: "31415926535897",
+			TotalSent:     "31415926535900",
+			UnlockTime:    3222370,
+			Height:        3222370,
+			SpentOutputs: []Spend{{
+				Amount:      "31415926535897",
+				KeyImage:    "A555554CD552ACB3554CAACA94914F54A5567946",
+				TxPublicKey: "a06c7f33eb578148a578167babf3367f87a43ee601d9feda98c803c135c0b506", // Don't send XMR here
+				OutIndex:    0,
+				Mixin:       4,
+			}},
+			PaymentID: "",
+			Coinbase:  false,
+			Mempool:   false,
+			Mixin:     0,
 		}},
-		ExchangeRates: Rates{
-			AUD: 4.1,
-			EUR: 4.2,
-			GBP: 4.3,
-			USD: 4.4,
-			RUB: 4.5,
-		},
 	}
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
@@ -46,14 +49,14 @@ func TestGetAddressInfo(t *testing.T) {
 
 		err := json.NewDecoder(r.Body).Decode(request)
 		if err != nil {
-			t.Error("GetAddressInfo() made an invalid request: ", err)
+			t.Error("GetAddressTxs() made an invalid request: ", err)
 		}
 
 		if request.Address != "xmr_address" {
-			t.Error("GetAddressInfo() mangled our XMR address: " + request.Address + " != xmr_address")
+			t.Error("GetAddressTxs() mangled our XMR address: " + request.Address + " != xmr_address")
 		}
 		if request.ViewKey != "xmr_view_key" {
-			t.Error("GetAddressInfo() mangled our view key: " + request.ViewKey + " != xmr_view_key")
+			t.Error("GetAddressTxs() mangled our view key: " + request.ViewKey + " != xmr_view_key")
 		}
 
 		if tryCount != 0 {
@@ -94,9 +97,9 @@ func TestGetAddressInfo(t *testing.T) {
 		viewKey:    "xmr_view_key",
 	}
 
-	resp, err := client.GetAddressInfo()
+	resp, err := client.GetAddressTxs()
 	if err != nil {
-		t.Error("GetAddressInfo() returned the error: ", err)
+		t.Error("GetAddressTxs() returned the error: ", err)
 	}
 
 	if reflect.DeepEqual(*resp, response) != true {

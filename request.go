@@ -17,14 +17,14 @@ type StandardRequest struct {
 
 type Transaction struct {
 	ID            uint64    `json:"id"`
-	Hash          []byte    `json:"hash"`
+	Hash          string    `json:"hash"` // hex encoded binary
 	Timestamp     time.Time `json:"timestamp"`
 	TotalReceived string    `json:"total_received"`
 	TotalSent     string    `json:"total_sent"`
 	UnlockTime    uint64    `json:"unlock_time"`
 	Height        uint64    `json:"height"`
 	SpentOutputs  []Spend   `json:"spent_outputs"`
-	PaymentID     []byte    `json:"payment_id"`
+	PaymentID     string    `json:"payment_id"` // hex encoded binary
 	Coinbase      bool      `json:"coinbase"`
 	Mempool       bool      `json:"mempool"`
 	Mixin         uint64    `json:"mixin"`
@@ -32,8 +32,8 @@ type Transaction struct {
 
 type Spend struct {
 	Amount      string `json:"amount"`
-	KeyImage    []byte `json:"key_image"`
-	TxPublicKey []byte `json:"tx_pub_key"`
+	KeyImage    string `json:"key_image"`  // hex encoded binary
+	TxPublicKey string `json:"tx_pub_key"` // hex encoded binary
 	OutIndex    uint16 `json:"out_index"`
 	Mixin       uint32 `json:"mixin"`
 }
