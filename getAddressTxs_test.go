@@ -16,6 +16,11 @@ import (
 func TestGetAddressTxs(t *testing.T) {
 	tryCount := 1 //Number of times to send HTTP Service Unavailable
 
+	request := &StandardRequest{
+		Address: "xmr_address",
+		ViewKey: "xmr_view_key",
+	}
+
 	response := GetAddressTxsResponse{
 		TotalReceived:      "31415926535897",
 		ScannedHeight:      3222370,
@@ -45,18 +50,15 @@ func TestGetAddressTxs(t *testing.T) {
 	}
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		var request = &StandardRequest{}
+		var req = &StandardRequest{}
 
-		err := json.NewDecoder(r.Body).Decode(request)
+		err := json.NewDecoder(r.Body).Decode(req)
 		if err != nil {
 			t.Error("GetAddressTxs() made an invalid request: ", err)
 		}
 
-		if request.Address != "xmr_address" {
-			t.Error("GetAddressTxs() mangled our XMR address: " + request.Address + " != xmr_address")
-		}
-		if request.ViewKey != "xmr_view_key" {
-			t.Error("GetAddressTxs() mangled our view key: " + request.ViewKey + " != xmr_view_key")
+		if reflect.DeepEqual(req, request) != true {
+			t.Error("req struct didn't match the original data in request")
 		}
 
 		if tryCount != 0 {
@@ -89,12 +91,12 @@ func TestGetAddressTxs(t *testing.T) {
 	defer ts.Close()
 
 	client := &Client{
-		address:    "xmr_address",
+		address:    request.Address,
 		client:     &http.Client{},
 		retryCount: tryCount,
 		retryTime:  time.Duration(0),
 		serverURL:  ts.URL,
-		viewKey:    "xmr_view_key",
+		viewKey:    request.ViewKey,
 	}
 
 	resp, err := client.GetAddressTxs()
@@ -103,6 +105,6 @@ func TestGetAddressTxs(t *testing.T) {
 	}
 
 	if reflect.DeepEqual(*resp, response) != true {
-		t.Error("Response struct didn't match the original data.")
+		t.Error("response struct didn't match the original data")
 	}
 }

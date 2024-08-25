@@ -6,18 +6,20 @@ package gomonerolight
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"reflect"
-	"strconv"
 	"testing"
 	"time"
 )
 
 func TestGetRandomOuts(t *testing.T) {
 	tryCount := 1 //Number of times to send HTTP Service Unavailable
+
+	request := &GetRandomOutsRequest{
+		Count:   0,
+		Amounts: []string{"0"},
+	}
 
 	response := GetRandomOutsResponse{
 		AmountOuts: []RandomOutput{{
@@ -28,21 +30,15 @@ func TestGetRandomOuts(t *testing.T) {
 	}
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		var request = &GetRandomOutsRequest{}
+		var req = &GetRandomOutsRequest{}
 
-		err := json.NewDecoder(r.Body).Decode(request)
+		err := json.NewDecoder(r.Body).Decode(req)
 		if err != nil {
 			t.Error("GetRandomOuts() made an invalid request: ", err)
 		}
 
-		if request.Count != 0 {
-			t.Error("GetRandomOuts() mangled our mixin count: " + strconv.Itoa(int(request.Count)) + " != 0")
-		}
-		if len(request.Amounts) != 1 || request.Amounts[0] != "0" {
-			_, err := fmt.Fprintf(os.Stderr, `GetRandomOuts() mangled our amounts:\n%#v != []string{"0"}\n`, request.Amounts)
-			if err != nil {
-				panic(err)
-			}
+		if reflect.DeepEqual(req, request) != true {
+			t.Error("req struct didn't match the original data in request")
 		}
 
 		if tryCount != 0 {
@@ -83,17 +79,12 @@ func TestGetRandomOuts(t *testing.T) {
 		viewKey:    "xmr_view_key",
 	}
 
-	request := &GetRandomOutsRequest{
-		Count:   0,
-		Amounts: []string{"0"},
-	}
-
 	resp, err := client.GetRandomOuts(request)
 	if err != nil {
 		t.Error("GetRandomOuts() returned the error: ", err)
 	}
 
 	if reflect.DeepEqual(*resp, response) != true {
-		t.Error("Response struct didn't match the original data.")
+		t.Error("response struct didn't match the original data")
 	}
 }
