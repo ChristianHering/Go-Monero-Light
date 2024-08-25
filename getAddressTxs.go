@@ -34,7 +34,7 @@ func (c *Client) GetAddressTxs() (*GetAddressTxsResponse, error) {
 
 	err := json.NewEncoder(b).Encode(reqObj)
 	if err != nil {
-		_, err := fmt.Fprintf(os.Stderr, "In call to GetAddressInfoResponse(), failed to encode the following data:\n%#v\n", *reqObj)
+		_, err := fmt.Fprintf(os.Stderr, "In call to GetAddressTxsResponse(), failed to encode the following data:\n%#v\n", *reqObj)
 		if err != nil {
 			panic(err)
 		}
@@ -44,7 +44,7 @@ func (c *Client) GetAddressTxs() (*GetAddressTxsResponse, error) {
 
 	url, err := url.JoinPath(c.serverURL, path)
 	if err != nil {
-		printToStderr("Failed to join " + c.serverURL + " and " + path + " in call to GetAddressInfo().")
+		printToStderr("Failed to join " + c.serverURL + " and " + path + " in call to GetAddressTxs().")
 
 		return &GetAddressTxsResponse{}, err
 	}
@@ -76,7 +76,7 @@ POST_REQUEST:
 
 	err = json.NewDecoder(resp.Body).Decode(response)
 	if err != nil {
-		printToStderr("Failed to decode /get_address_info response.")
+		printToStderr("Failed to decode /get_address_txs response.")
 
 		return &GetAddressTxsResponse{}, err
 	}
