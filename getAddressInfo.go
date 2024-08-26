@@ -13,6 +13,10 @@ import (
 	"time"
 )
 
+// GetAddressInfoResponse holds the information to calculate
+// a wallet's balance using our spend key.
+//
+// ExchangeRates is optional and may not be sent by the server.
 type GetAddressInfoResponse struct {
 	LockedFunds        string  `json:"locked_funds"`
 	TotalReceived      string  `json:"total_received"`
@@ -26,6 +30,7 @@ type GetAddressInfoResponse struct {
 	ExchangeRates      Rates   `json:"rates"`
 }
 
+// Rates lists XMR exchange rates for common fiat currencies
 type Rates struct {
 	AUD float32 `json:"AUD"`
 	BRL float32 `json:"BRL"`
@@ -50,31 +55,32 @@ type Rates struct {
 	ZAR float32 `json:"ZAR"`
 }
 
+// GetAddressInfo gets the information to calculate a wallet's balance
+//
+// The server returns candidate spends that can be used to calculate
+// a wallet's balance using our spend key.
 func (c *Client) GetAddressInfo() (*GetAddressInfoResponse, error) {
 	const path = "/get_address_info"
 
 	b := new(bytes.Buffer)
 
-	reqObj := &StandardRequest{
+	request := &StandardRequest{
 		Address: c.address,
 		ViewKey: c.viewKey,
 	}
 
-	err := json.NewEncoder(b).Encode(reqObj)
+	err := json.NewEncoder(b).Encode(request)
 	if err != nil {
-		_, err := fmt.Fprintf(os.Stderr, "In call to GetAddressInfoResponse(), failed to encode the following data:\n%#v\n", *reqObj)
-		if err != nil {
-			panic(err)
-		}
+		_, _ = fmt.Fprintf(os.Stderr, "failed to encode:\n\n%#v\n\nwith error:\n%v\n\n", *request, err)
 
 		return &GetAddressInfoResponse{}, ErrorStandardRequestEncode
 	}
 
 	url, err := url.JoinPath(c.serverURL, path)
 	if err != nil {
-		printToStderr("Failed to join " + c.serverURL + " and " + path + " in call to GetAddressInfo().")
+		_, _ = fmt.Fprintf(os.Stderr, "failed to join:\n%s\nand\n%s\nwith error:\n\n%v\n\n", c.serverURL, path, err)
 
-		return &GetAddressInfoResponse{}, err
+		return &GetAddressInfoResponse{}, ErrorJoinPathFailed
 	}
 
 	retries := 0
@@ -83,9 +89,9 @@ POST_REQUEST:
 
 	resp, err := c.client.Post(url, "application/json", bytes.NewReader(b.Bytes()))
 	if err != nil {
-		printToStderr("Failed to post the following data to " + url + ": " + b.String())
+		_, _ = fmt.Fprintf(os.Stderr, "failed to post:\n\n%s\n\n to our endpoint at:\n\n%s\n\nwith error:\n\n%v\n\n", b.String(), url, err)
 
-		return &GetAddressInfoResponse{}, err
+		return &GetAddressInfoResponse{}, ErrorPostRequestFailed
 	}
 
 	if resp.StatusCode == http.StatusServiceUnavailable {
@@ -104,9 +110,9 @@ POST_REQUEST:
 
 	err = json.NewDecoder(resp.Body).Decode(response)
 	if err != nil {
-		printToStderr("Failed to decode /get_address_info response.")
+		_, _ = fmt.Fprintf(os.Stderr, "failed to decode:\n\n%#v\n\nwith error:\n%v\n", response, err)
 
-		return &GetAddressInfoResponse{}, err
+		return &GetAddressInfoResponse{}, ErrorResponseUnmarshalFailed
 	}
 
 	return response, nil

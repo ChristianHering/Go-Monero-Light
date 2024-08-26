@@ -4,12 +4,12 @@
 package gomonerolight
 
 import (
-	"errors"
 	"time"
 )
 
-var ErrorStandardRequestEncode = errors.New("failed to encode standard request using data from 'client'")
-
+// StandardRequest is the most common request used
+// in Monero's light wallet API and doesn't need to
+// be passed to function calls after client creation.
 type StandardRequest struct {
 	Address string `json:"address"`
 	ViewKey string `json:"view_key"`

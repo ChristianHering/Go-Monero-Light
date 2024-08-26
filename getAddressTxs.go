@@ -13,6 +13,8 @@ import (
 	"time"
 )
 
+// GetAddressTxsResponse holds an array of candidate spend events
+// that can be used to get an account's transaction history.
 type GetAddressTxsResponse struct {
 	TotalReceived      string        `json:"total_received"`
 	ScannedHeight      uint64        `json:"scanned_height"`
@@ -22,31 +24,33 @@ type GetAddressTxsResponse struct {
 	Transactions       []Transaction `json:"transactions"`
 }
 
+// GetAddressTxs returns candidate spends to show transaction history
+//
+// Your Monero spend key is required to calculate if a candidate spend
+// was an actual spend so it only returns candidate spend events and
+// leaves the calculation for the client.
 func (c *Client) GetAddressTxs() (*GetAddressTxsResponse, error) {
 	const path = "/get_address_txs"
 
 	b := new(bytes.Buffer)
 
-	reqObj := &StandardRequest{
+	request := &StandardRequest{
 		Address: c.address,
 		ViewKey: c.viewKey,
 	}
 
-	err := json.NewEncoder(b).Encode(reqObj)
+	err := json.NewEncoder(b).Encode(request)
 	if err != nil {
-		_, err := fmt.Fprintf(os.Stderr, "In call to GetAddressTxsResponse(), failed to encode the following data:\n%#v\n", *reqObj)
-		if err != nil {
-			panic(err)
-		}
+		_, _ = fmt.Fprintf(os.Stderr, "failed to encode:\n\n%#v\n\nwith error:\n%v\n\n", *request, err)
 
 		return &GetAddressTxsResponse{}, ErrorStandardRequestEncode
 	}
 
 	url, err := url.JoinPath(c.serverURL, path)
 	if err != nil {
-		printToStderr("Failed to join " + c.serverURL + " and " + path + " in call to GetAddressTxs().")
+		_, _ = fmt.Fprintf(os.Stderr, "failed to join:\n%s\nand\n%s\nwith error:\n\n%v\n\n", c.serverURL, path, err)
 
-		return &GetAddressTxsResponse{}, err
+		return &GetAddressTxsResponse{}, ErrorJoinPathFailed
 	}
 
 	retries := 0
@@ -55,9 +59,9 @@ POST_REQUEST:
 
 	resp, err := c.client.Post(url, "application/json", bytes.NewReader(b.Bytes()))
 	if err != nil {
-		printToStderr("Failed to post the following data to " + url + ": " + b.String())
+		_, _ = fmt.Fprintf(os.Stderr, "failed to post:\n\n%s\n\n to our endpoint at:\n\n%s\n\nwith error:\n\n%v\n\n", b.String(), url, err)
 
-		return &GetAddressTxsResponse{}, err
+		return &GetAddressTxsResponse{}, ErrorPostRequestFailed
 	}
 
 	if resp.StatusCode == http.StatusServiceUnavailable {
@@ -76,9 +80,9 @@ POST_REQUEST:
 
 	err = json.NewDecoder(resp.Body).Decode(response)
 	if err != nil {
-		printToStderr("Failed to decode /get_address_txs response.")
+		_, _ = fmt.Fprintf(os.Stderr, "failed to decode:\n\n%#v\n\nwith error:\n%v\n", response, err)
 
-		return &GetAddressTxsResponse{}, err
+		return &GetAddressTxsResponse{}, ErrorResponseUnmarshalFailed
 	}
 
 	return response, nil

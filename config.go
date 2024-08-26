@@ -26,7 +26,7 @@ func checkConfig(cfg *Config) error {
 	if cfg.Address == "" {
 		// TODO: Generate a new, random address (and viewkey) if one is not provided
 
-		printToStderr("no XMR address was passed to NewClient() call")
+		_, _ = fmt.Fprintf(os.Stderr, "no XMR address was passed to NewClient() call\n")
 
 		return ErrorBadConfig
 	}
@@ -40,10 +40,7 @@ func checkConfig(cfg *Config) error {
 	}
 
 	if cfg.ViewKey == "" {
-		_, err := fmt.Fprintln(os.Stderr, "No viewkey was passed to NewClient call")
-		if err != nil {
-			panic(err)
-		}
+		_, _ = fmt.Fprintf(os.Stderr, "no viewkey was passed to NewClient call\n")
 
 		return ErrorBadConfig
 	}

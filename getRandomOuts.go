@@ -14,13 +14,24 @@ import (
 	"time"
 )
 
+// GetRandomOutsRequest holds request data for GetRandomOuts()
+//
+// Amounts represents the XMR amounts that need mixing. Clients
+// should take care when making several ring signatures. See:
+// https://github.com/monero-project/meta/blob/master/api/lightwallet_rest.md#get_random_outs
 type GetRandomOutsRequest struct {
 	Count   uint32   `json:"count"`
 	Amounts []string `json:"amounts"`
 }
 
+// GetRandomOutsResponse
 type GetRandomOutsResponse struct {
-	AmountOuts []RandomOutput `json:"amount_outs"`
+	AmountOuts []RandomOutputs `json:"amount_outs"`
+}
+
+type RandomOutputs struct {
+	Amount  string         `json:"amount"`
+	Outputs []RandomOutput `json:"outputs"`
 }
 
 type RandomOutput struct {
@@ -31,6 +42,8 @@ type RandomOutput struct {
 
 var ErrorRandomOutsRequestEncode = errors.New("failed to encode random outs request using data from 'request' and 'client'")
 
+// GetRandomOuts selects random outputs to be
+// used for a ring signature in a new transaction.
 func (c *Client) GetRandomOuts(request *GetRandomOutsRequest) (*GetRandomOutsResponse, error) {
 	const path = "/get_random_outs"
 
@@ -38,19 +51,16 @@ func (c *Client) GetRandomOuts(request *GetRandomOutsRequest) (*GetRandomOutsRes
 
 	err := json.NewEncoder(b).Encode(request)
 	if err != nil {
-		_, err := fmt.Fprintf(os.Stderr, "In call to GetRandomOuts(), failed to encode the following data:\n%#v\n", *request)
-		if err != nil {
-			panic(err)
-		}
+		_, _ = fmt.Fprintf(os.Stderr, "failed to encode:\n\n%#v\n\nwith error:\n%v\n\n", *request, err)
 
 		return &GetRandomOutsResponse{}, ErrorRandomOutsRequestEncode
 	}
 
 	url, err := url.JoinPath(c.serverURL, path)
 	if err != nil {
-		printToStderr("Failed to join " + c.serverURL + " and " + path + " in call to GetRandomOuts().")
+		_, _ = fmt.Fprintf(os.Stderr, "failed to join:\n%s\nand\n%s\nwith error:\n\n%v\n\n", c.serverURL, path, err)
 
-		return &GetRandomOutsResponse{}, err
+		return &GetRandomOutsResponse{}, ErrorJoinPathFailed
 	}
 
 	retries := 0
@@ -59,9 +69,9 @@ POST_REQUEST:
 
 	resp, err := c.client.Post(url, "application/json", bytes.NewReader(b.Bytes()))
 	if err != nil {
-		printToStderr("Failed to post the following data to " + url + ": " + b.String())
+		_, _ = fmt.Fprintf(os.Stderr, "failed to post:\n\n%s\n\n to our endpoint at:\n\n%s\n\nwith error:\n\n%v\n\n", b.String(), url, err)
 
-		return &GetRandomOutsResponse{}, err
+		return &GetRandomOutsResponse{}, ErrorPostRequestFailed
 	}
 
 	if resp.StatusCode == http.StatusServiceUnavailable {
@@ -80,9 +90,9 @@ POST_REQUEST:
 
 	err = json.NewDecoder(resp.Body).Decode(response)
 	if err != nil {
-		printToStderr("Failed to decode /get_random_outs response.")
+		_, _ = fmt.Fprintf(os.Stderr, "failed to decode:\n\n%#v\n\nwith error:\n%v\n", response, err)
 
-		return &GetRandomOutsResponse{}, err
+		return &GetRandomOutsResponse{}, ErrorResponseUnmarshalFailed
 	}
 
 	return response, nil

@@ -17,6 +17,10 @@ type Client struct {
 	viewKey    string
 }
 
+// NewClient creates a new client using the
+// given Config 'cfg'. After calling NewClient()
+// and getting a client 'c', call c.Login()
+// and then the subsequent methods you need.
 func NewClient(cfg Config) (*Client, error) {
 	c := &Client{}
 

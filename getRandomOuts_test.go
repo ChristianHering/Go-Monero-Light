@@ -17,16 +17,20 @@ func TestGetRandomOuts(t *testing.T) {
 	tryCount := 1 //Number of times to send HTTP Service Unavailable
 
 	request := &GetRandomOutsRequest{
-		Count:   0,
+		Count:   4,
 		Amounts: []string{"0"},
 	}
 
 	response := GetRandomOutsResponse{
-		AmountOuts: []RandomOutput{{
-			GlobalIndex: "1",
-			PublicKey:   "915CA54F54AA5545945567554CD552ACB3CAA946",
-			RingCT:      "915CA54F54AA5545945567554CD552ACB3CAA946",
-		}},
+		AmountOuts: []RandomOutputs{{
+			Amount:  "0",
+			Outputs: []RandomOutput{{
+					GlobalIndex: "1",
+					PublicKey:   "915CA54F54AA5545945567554CD552ACB3CAA946",
+					RingCT:      "915CA54F54AA5545945567554CD552ACB3CAA946",
+				}},
+			},
+		},
 	}
 
 	handler := func(w http.ResponseWriter, r *http.Request) {

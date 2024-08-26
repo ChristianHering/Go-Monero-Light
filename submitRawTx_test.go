@@ -53,12 +53,12 @@ func TestSubmitRawTx(t *testing.T) {
 
 		err = json.NewEncoder(b).Encode(response)
 		if err != nil {
-			t.Error("Failed to marshal our response!")
+			t.Error("failed to marshal our response")
 		}
 
 		w.Write(b.Bytes())
 		if err != nil {
-			t.Error("Failed to marshal our response!")
+			t.Error("failed to marshal our response")
 		}
 	}
 

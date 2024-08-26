@@ -13,40 +13,44 @@ import (
 	"time"
 )
 
+// ImportRequestResponse returns the result of our account rescan,
+// its status, and more if the server charged for the wallet service.
+//
+// PaymentAddress, PaymentID, and ImportFee are optional responses and are
+// typically returned if the client needs to pay to complete the request.
 type ImportRequestResponse struct {
 	PaymentAddress   string `json:"payment_address"`
-	PaymentID        string `json:"payment_id"`
+	PaymentID        string `json:"payment_id"` // hex encoded binary
 	ImportFee        string `json:"import_fee"`
 	NewRequest       bool   `json:"new_request"`
 	RequestFulfilled bool   `json:"request_fulfilled"`
 	Status           string `json:"status"`
 }
 
+// ImportRequest requests a rescan for our
+// account's address since Monero's genesis block.
 func (c *Client) ImportRequest() (*ImportRequestResponse, error) {
 	const path = "/import_request"
 
 	b := new(bytes.Buffer)
 
-	reqObj := &StandardRequest{
+	request := &StandardRequest{
 		Address: c.address,
 		ViewKey: c.viewKey,
 	}
 
-	err := json.NewEncoder(b).Encode(reqObj)
+	err := json.NewEncoder(b).Encode(request)
 	if err != nil {
-		_, err := fmt.Fprintf(os.Stderr, "In call to ImportRequestResponse(), failed to encode the following data:\n%#v\n", *reqObj)
-		if err != nil {
-			panic(err)
-		}
+		_, _ = fmt.Fprintf(os.Stderr, "failed to encode:\n\n%#v\n\nwith error:\n%v\n\n", *request, err)
 
 		return &ImportRequestResponse{}, ErrorStandardRequestEncode
 	}
 
 	url, err := url.JoinPath(c.serverURL, path)
 	if err != nil {
-		printToStderr("Failed to join " + c.serverURL + " and " + path + " in call to ImportRequest().")
+		_, _ = fmt.Fprintf(os.Stderr, "failed to join:\n%s\nand\n%s\nwith error:\n\n%v\n\n", c.serverURL, path, err)
 
-		return &ImportRequestResponse{}, err
+		return &ImportRequestResponse{}, ErrorJoinPathFailed
 	}
 
 	retries := 0
@@ -55,9 +59,9 @@ POST_REQUEST:
 
 	resp, err := c.client.Post(url, "application/json", bytes.NewReader(b.Bytes()))
 	if err != nil {
-		printToStderr("Failed to post the following data to " + url + ": " + b.String())
+		_, _ = fmt.Fprintf(os.Stderr, "failed to post:\n\n%s\n\n to our endpoint at:\n\n%s\n\nwith error:\n\n%v\n\n", b.String(), url, err)
 
-		return &ImportRequestResponse{}, err
+		return &ImportRequestResponse{}, ErrorPostRequestFailed
 	}
 
 	if resp.StatusCode == http.StatusServiceUnavailable {
@@ -76,9 +80,9 @@ POST_REQUEST:
 
 	err = json.NewDecoder(resp.Body).Decode(response)
 	if err != nil {
-		printToStderr("Failed to decode /import_request response.")
+		_, _ = fmt.Fprintf(os.Stderr, "failed to decode:\n\n%#v\n\nwith error:\n%v\n", response, err)
 
-		return &ImportRequestResponse{}, err
+		return &ImportRequestResponse{}, ErrorResponseUnmarshalFailed
 	}
 
 	return response, nil

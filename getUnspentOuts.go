@@ -14,6 +14,12 @@ import (
 	"time"
 )
 
+// GetUnspentOutsRequest holds a request for GetUnspentOuts().
+//
+// It is not required to pass Address or ViewKey, as those are
+// derived from 'client'. Additionally, if the value given for
+// Amount is greater than the total received outputs for our
+// account, the server will respond with HTTP 400 (Bad Request)
 type GetUnspentOutsRequest struct {
 	Address       string `json:"address"`
 	ViewKey       string `json:"view_key"` // hex encoded binary
@@ -23,6 +29,10 @@ type GetUnspentOutsRequest struct {
 	DustThreshold string `json:"dust_threshold"`
 }
 
+// GetUnspentOutsResponse is the response from a call to GetUnspentOuts().
+//
+// It holds the total value of all the outputs in Outputs as
+// well as the actual data for each output in our Outputs slice.
 type GetUnspentOutsResponse struct {
 	PerByteFee string   `json:"per_byte_fee"`
 	FeeMask    string   `json:"fee_mask"`
@@ -30,6 +40,7 @@ type GetUnspentOutsResponse struct {
 	Outputs    []Output `json:"outputs"`
 }
 
+// Output represents a single monero output.
 type Output struct {
 	TxID           uint64   `json:"tx_id"`
 	Amount         string   `json:"amount"`
@@ -47,6 +58,9 @@ type Output struct {
 
 var ErrorGetUnspentOutsRequestEncode = errors.New("failed to encode GetUnspentOutsRequest using data from 'client' and 'request'")
 
+// GetUnspentOuts gets a list of received outputs.
+//
+// It does not return or distinguish when outputs were spent.
 func (c *Client) GetUnspentOuts(request *GetUnspentOutsRequest) (*GetUnspentOutsResponse, error) {
 	const path = "/get_unspent_outs"
 
@@ -57,19 +71,16 @@ func (c *Client) GetUnspentOuts(request *GetUnspentOutsRequest) (*GetUnspentOuts
 
 	err := json.NewEncoder(b).Encode(request)
 	if err != nil {
-		_, err := fmt.Fprintf(os.Stderr, "In call to GetUnspentOutsResponse(), failed to encode the following data:\n%#v\n", *request)
-		if err != nil {
-			panic(err)
-		}
+		_, _ = fmt.Fprintf(os.Stderr, "failed to encode:\n\n%#v\n\nwith error:\n%v\n\n", *request, err)
 
 		return &GetUnspentOutsResponse{}, ErrorGetUnspentOutsRequestEncode
 	}
 
 	url, err := url.JoinPath(c.serverURL, path)
 	if err != nil {
-		printToStderr("Failed to join " + c.serverURL + " and " + path + " in call to GetUnspentOuts().")
+		_, _ = fmt.Fprintf(os.Stderr, "failed to join:\n%s\nand\n%s\nwith error:\n\n%v\n\n", c.serverURL, path, err)
 
-		return &GetUnspentOutsResponse{}, err
+		return &GetUnspentOutsResponse{}, ErrorJoinPathFailed
 	}
 
 	retries := 0
@@ -78,9 +89,9 @@ POST_REQUEST:
 
 	resp, err := c.client.Post(url, "application/json", bytes.NewReader(b.Bytes()))
 	if err != nil {
-		printToStderr("Failed to post the following data to " + url + ": " + b.String())
+		_, _ = fmt.Fprintf(os.Stderr, "failed to post:\n\n%s\n\n to our endpoint at:\n\n%s\n\nwith error:\n\n%v\n\n", b.String(), url, err)
 
-		return &GetUnspentOutsResponse{}, err
+		return &GetUnspentOutsResponse{}, ErrorPostRequestFailed
 	}
 
 	if resp.StatusCode == http.StatusServiceUnavailable {
@@ -99,9 +110,9 @@ POST_REQUEST:
 
 	err = json.NewDecoder(resp.Body).Decode(response)
 	if err != nil {
-		printToStderr("Failed to decode /get_unspent_outs response.")
+		_, _ = fmt.Fprintf(os.Stderr, "failed to decode:\n\n%#v\n\nwith error:\n%v\n", response, err)
 
-		return &GetUnspentOutsResponse{}, err
+		return &GetUnspentOutsResponse{}, ErrorResponseUnmarshalFailed
 	}
 
 	return response, nil
